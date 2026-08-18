@@ -3,11 +3,21 @@ import "server-only";
 import webpush from "web-push";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT!,
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-  process.env.VAPID_PRIVATE_KEY!
-);
+// Configurado de forma perezosa (no al cargar el módulo): Next.js evalúa
+// este módulo al recolectar datos de cada ruta durante el build, incluso
+// para rutas que nunca llegan a enviar un push — si las variables VAPID no
+// estuvieran disponibles en ese momento, el build entero fallaría por algo
+// que en realidad es un problema de runtime, no de compilación.
+let vapidConfigured = false;
+function ensureVapidConfigured() {
+  if (vapidConfigured) return;
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT!,
+    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+    process.env.VAPID_PRIVATE_KEY!
+  );
+  vapidConfigured = true;
+}
 
 export async function notifyAdmins(payload: {
   title: string;
@@ -62,6 +72,8 @@ export async function sendPushToUser(
     .eq("user_id", userId);
 
   if (!subs?.length) return;
+
+  ensureVapidConfigured();
 
   await Promise.all(
     subs.map(async (sub) => {
