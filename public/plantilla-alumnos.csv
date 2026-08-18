@@ -1,0 +1,2 @@
+full_name,parent_document_id,school_name,grade,address_label,lat,lng,document_type,document_id,birth_date,blood_type,default_fee
+Juan Pérez,1234567890,Colegio San José,3ro,Calle 5 # 10-20,,,TI,1098765432,2015-03-10,O+,120000

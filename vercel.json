@@ -1,0 +1,6 @@
+{
+  "crons": [
+    { "path": "/api/cron/generate-payments", "schedule": "0 5 1 * *" },
+    { "path": "/api/cron/expiry-alerts", "schedule": "0 13 * * *" }
+  ]
+}
