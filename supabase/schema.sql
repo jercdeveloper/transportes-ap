@@ -667,17 +667,26 @@ create policy "emergency_alerts_insert" on emergency_alerts
 
 -- ---------------------------------------------------------------------------
 -- Storage: fotos de evidencia adjuntas a incidencias.
--- Bucket público de lectura (las fotos no son datos sensibles como los
--- médicos, así que se evita la complejidad de URLs firmadas); solo
--- choferes y admin pueden subir.
+-- Bucket público de lectura: el objeto se puede pedir por su URL directa
+-- (bucket "public" hace que ese endpoint no pase por RLS) sin necesitar
+-- URLs firmadas, y el path lleva un prefijo random (crypto.randomUUID())
+-- que hace la URL impráctica de adivinar. Solo choferes y admin suben.
+--
+-- A propósito NO existe una política de "select" en storage.objects para
+-- este bucket: aunque el bucket es público para descargas directas por
+-- URL, una política de select habilitaría además el LISTADO del bucket
+-- (storage.objects.list usa la misma política) — eso permitiría a
+-- cualquier persona sin sesión enumerar y descargar todas las fotos
+-- subidas, que es justo el escenario de privacidad que se quiere evitar
+-- para menores de edad. Sin política de select, list queda bloqueado por
+-- defecto (RLS deniega si no hay política que dé permiso) y la descarga
+-- directa por URL conocida sigue funcionando igual.
 -- ---------------------------------------------------------------------------
 insert into storage.buckets (id, name, public)
 values ('incident-photos', 'incident-photos', true)
 on conflict (id) do nothing;
 
 drop policy if exists "incident_photos_read" on storage.objects;
-create policy "incident_photos_read" on storage.objects
-  for select using (bucket_id = 'incident-photos');
 
 drop policy if exists "incident_photos_write" on storage.objects;
 create policy "incident_photos_write" on storage.objects
@@ -691,16 +700,16 @@ create policy "incident_photos_write" on storage.objects
 
 -- ---------------------------------------------------------------------------
 -- Storage: fotos de alumnos, para que el chofer los reconozca en la parada.
--- Bucket público de lectura (igual que las fotos de incidencias); solo el
--- admin las sube (se toman al inscribir/editar al alumno).
+-- Bucket público de lectura (mismo razonamiento que incident-photos: sin
+-- política de select para que no se puedan listar/enumerar, la descarga
+-- por URL directa conocida sigue funcionando). Solo el admin las sube (se
+-- toman al inscribir/editar al alumno).
 -- ---------------------------------------------------------------------------
 insert into storage.buckets (id, name, public)
 values ('student-photos', 'student-photos', true)
 on conflict (id) do nothing;
 
 drop policy if exists "student_photos_read" on storage.objects;
-create policy "student_photos_read" on storage.objects
-  for select using (bucket_id = 'student-photos');
 
 drop policy if exists "student_photos_write" on storage.objects;
 create policy "student_photos_write" on storage.objects
