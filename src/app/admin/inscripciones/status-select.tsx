@@ -12,6 +12,7 @@ export function EnrollmentStatusSelect({
   return (
     <form action={action}>
       <NativeSelect
+        key={status}
         name="status"
         defaultValue={status}
         onChange={(e) => e.currentTarget.form?.requestSubmit()}

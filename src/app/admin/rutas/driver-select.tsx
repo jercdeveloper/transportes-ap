@@ -14,6 +14,7 @@ export function DriverSelect({
   return (
     <form action={action} className="mt-1">
       <NativeSelect
+        key={driverId ?? "none"}
         name="driver_id"
         defaultValue={driverId ?? ""}
         onChange={(e) => e.currentTarget.form?.requestSubmit()}

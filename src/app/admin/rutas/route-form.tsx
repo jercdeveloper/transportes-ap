@@ -36,7 +36,11 @@ export function RouteForm({
   return (
     <Card>
       <CardContent>
-        <form action={formAction} className="grid gap-4 sm:grid-cols-3">
+        <form
+          key={JSON.stringify(initialValues)}
+          action={formAction}
+          className="grid gap-4 sm:grid-cols-3"
+        >
           <div className="space-y-1.5">
             <Label htmlFor="name">Nombre de la ruta</Label>
             <Input id="name" name="name" required defaultValue={initialValues?.name} />

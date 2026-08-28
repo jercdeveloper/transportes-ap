@@ -39,7 +39,11 @@ export function PersonForm({
   return (
     <Card>
       <CardContent>
-        <form action={formAction} className="grid gap-4 sm:grid-cols-2">
+        <form
+          key={JSON.stringify(initialValues)}
+          action={formAction}
+          className="grid gap-4 sm:grid-cols-2"
+        >
           <Field
             label="Nombre completo"
             name="full_name"

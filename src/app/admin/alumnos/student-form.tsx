@@ -106,6 +106,7 @@ export function StudentForm({
     <Card>
       <CardContent>
         <form
+          key={JSON.stringify(initialValues)}
           action={async (formData) => {
             await formAction(formData);
             if (resetOnSuccess) {

@@ -48,7 +48,7 @@ export function PaymentRow({
           title="Recargo por mora"
           aria-label="Recargo por mora"
         />
-        <NativeSelect name="status" defaultValue={status} className="w-32">
+        <NativeSelect key={`status-${status}`} name="status" defaultValue={status} className="w-32">
           <option value="pendiente">Pendiente</option>
           <option value="pagado">Pagado</option>
         </NativeSelect>
