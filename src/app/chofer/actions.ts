@@ -21,6 +21,21 @@ async function assertOwnsRoute(routeId: string) {
   return { supabase, route, profile };
 }
 
+async function assertStudentOnRoute(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  routeId: string,
+  studentId: string
+) {
+  const { data } = await supabase
+    .from("student_route_assignment")
+    .select("student_id")
+    .eq("route_id", routeId)
+    .eq("student_id", studentId)
+    .maybeSingle();
+
+  if (!data) throw new Error("Ese alumno no pertenece a esta ruta.");
+}
+
 export async function startTrip(routeId: string, formData: FormData) {
   const { supabase, route } = await assertOwnsRoute(routeId);
 
@@ -90,6 +105,7 @@ export async function reportIncident(
   const photoUrl = String(formData.get("photo_url") ?? "") || null;
 
   if (!description) return;
+  if (studentId) await assertStudentOnRoute(supabase, routeId, studentId);
 
   const { error } = await supabase.from("incidents").insert({
     route_id: routeId,
@@ -112,6 +128,7 @@ export async function reportIncident(
 
 export async function notifyNearStop(routeId: string, studentId: string) {
   const { supabase } = await assertOwnsRoute(routeId);
+  await assertStudentOnRoute(supabase, routeId, studentId);
 
   const { data: student } = await supabase
     .from("students")
@@ -139,6 +156,7 @@ export async function recordTripEvent(
   eventType: TripEventType
 ) {
   const { supabase } = await assertOwnsRoute(routeId);
+  await assertStudentOnRoute(supabase, routeId, studentId);
 
   const { error } = await supabase.from("trip_events").insert({
     trip_id: tripId,
