@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Camera } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { compressImage } from "@/lib/compress-image";
 import { Label } from "@/components/ui/label";
 
 export function PhotoUploadField({
@@ -22,10 +24,11 @@ export function PhotoUploadField({
   >("idle");
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const rawFile = e.target.files?.[0];
+    if (!rawFile) return;
 
     setUploadStatus("uploading");
+    const file = await compressImage(rawFile);
     const supabase = createClient();
     const path = `${crypto.randomUUID()}-${file.name}`;
 
@@ -48,10 +51,11 @@ export function PhotoUploadField({
         {label}
       </Label>
       {photoUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           src={photoUrl}
           alt=""
+          width={64}
+          height={64}
           className="size-16 rounded-lg object-cover ring-1 ring-border"
         />
       )}

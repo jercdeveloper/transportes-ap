@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { FileDown, FileText, Trash2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { deleteIncident } from "./actions";
@@ -50,10 +51,11 @@ export default async function IncidenciasPage() {
                     {new Date(i.created_at).toLocaleString("es-CO")}
                   </p>
                   {i.photo_url && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={i.photo_url}
                       alt="Evidencia de la incidencia"
+                      width={128}
+                      height={128}
                       className="mt-2 h-32 w-32 rounded-lg object-cover ring-1 ring-border"
                     />
                   )}

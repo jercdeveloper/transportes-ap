@@ -1,3 +1,4 @@
+import Image from "next/image";
 import {
   Square,
   CircleCheck,
@@ -196,10 +197,11 @@ export default async function ChoferPage() {
                 <div>
                   <div className="flex items-center gap-2">
                     {a.students?.photo_url ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <Image
                         src={a.students.photo_url}
                         alt={a.students.full_name}
+                        width={36}
+                        height={36}
                         className="size-9 shrink-0 rounded-full object-cover ring-1 ring-border"
                       />
                     ) : null}

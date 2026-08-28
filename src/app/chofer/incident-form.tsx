@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Camera } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { compressImage } from "@/lib/compress-image";
 import { NativeSelect } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -21,10 +22,11 @@ export function IncidentForm({
   >("idle");
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const rawFile = e.target.files?.[0];
+    if (!rawFile) return;
 
     setUploadStatus("uploading");
+    const file = await compressImage(rawFile);
     const supabase = createClient();
     const path = `${crypto.randomUUID()}-${file.name}`;
 
