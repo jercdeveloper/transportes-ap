@@ -6,7 +6,7 @@ Plataforma web (PWA) para la gestión de transporte escolar de Transportes AP: r
 
 - Next.js 16 (App Router, TypeScript, Tailwind CSS)
 - Supabase (Postgres + Auth + Row Level Security)
-- Leaflet + OpenStreetMap para los mapas (sin cuenta ni API key)
+- Leaflet + OpenStreetMap para las imágenes del mapa (sin cuenta ni API key); Google Geocoding API para convertir una dirección escrita en coordenadas
 
 ## Puesta en marcha
 
@@ -35,10 +35,12 @@ VAPID_PRIVATE_KEY=...
 # para que solo Vercel Cron (u otro programador) pueda llamarlos.
 CRON_SECRET=...
 
-# Búsqueda de direcciones (parada de cada alumno en el mapa). Cuenta gratis en
-# https://account.mapbox.com/auth/signup — usa el "Default public token" que
-# ya viene creado. 100,000 búsquedas/mes gratis.
-NEXT_PUBLIC_MAPBOX_TOKEN=...
+# Búsqueda de direcciones (parada de cada alumno en el mapa) vía Google
+# Geocoding API — server-only, la usa /api/geocode, nunca se envía al
+# navegador. Requiere una cuenta de Google Cloud con facturación activada
+# (el uso de esta app se queda dentro de los $200 USD/mes gratis de Google
+# Maps Platform). Ver .env.local.example para los pasos exactos.
+GOOGLE_MAPS_API_KEY=...
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` es server-only: la usa el panel de admin para crear las cuentas de chofer y padre. Nunca se envía al navegador.
