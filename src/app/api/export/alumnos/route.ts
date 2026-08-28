@@ -45,7 +45,7 @@ export async function GET(request: Request) {
   ]);
 
   if (format === "pdf") {
-    const buffer = await tableToPdfBuffer("Alumnos — Transportes AP", HEADERS, rows);
+    const buffer = await tableToPdfBuffer("Alumnos", HEADERS, rows);
     return pdfResponse("alumnos.pdf", buffer);
   }
 

@@ -29,7 +29,7 @@ export async function GET(request: Request) {
 
   if (format === "pdf") {
     const buffer = await tableToPdfBuffer(
-      `Pagos ${period} — Transportes AP`,
+      `Pagos ${period}`,
       HEADERS,
       rows
     );

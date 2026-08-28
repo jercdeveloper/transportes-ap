@@ -31,7 +31,81 @@ function ensurePdfkitFontPatch() {
   });
 }
 
-const ROW_HEIGHT = 20;
+// Paleta de marca (coincide con el índigo usado en la app).
+const BRAND = "#4338ca";
+const BRAND_LIGHT = "#eef0fb";
+const INK = "#1f2937";
+const INK_MUTED = "#6b7280";
+const BORDER = "#e2e4f0";
+const STRIPE = "#f7f7fc";
+const SUCCESS = "#059669";
+const SUCCESS_LIGHT = "#e8f7f1";
+
+const HEADER_BAND_HEIGHT = 52;
+const ROW_HEIGHT = 22;
+
+function formatGeneratedAt() {
+  return new Date().toLocaleString("es-CO", {
+    dateStyle: "long",
+    timeStyle: "short",
+  });
+}
+
+// Franja superior con la marca — igual en todas las páginas del documento.
+function drawBrandBand(
+  doc: PDFKit.PDFDocument,
+  pageWidth: number,
+  title: string
+) {
+  doc.rect(0, 0, pageWidth, HEADER_BAND_HEIGHT).fill(BRAND);
+  doc
+    .fillColor("#ffffff")
+    .font("Helvetica-Bold")
+    .fontSize(16)
+    .text("Transportes AP", doc.page.margins.left, 16, { lineBreak: false });
+  doc
+    .font("Helvetica")
+    .fontSize(9)
+    .fillColor("#d9d6fb")
+    .text(title, doc.page.margins.left, 34, { lineBreak: false });
+}
+
+// Numeración y nota de pie — se agrega al final, una vez pdfkit conoce el
+// total real de páginas (bufferPages + bufferedPageRange).
+//
+// El pie se dibuja dentro del margen inferior a propósito (para que quede
+// pegado al borde de la página). pdfkit calcula el límite de "desborde" de
+// cualquier .text() como page.height - margins.bottom, así que escribir ahí
+// dispara su paginado automático y agrega una página en blanco de más. El
+// arreglo estándar es poner el margen inferior en 0 mientras se dibuja el
+// pie, y restaurarlo después.
+function drawFooters(doc: PDFKit.PDFDocument) {
+  const range = doc.bufferedPageRange();
+  const generatedAt = formatGeneratedAt();
+
+  for (let i = range.start; i < range.start + range.count; i++) {
+    doc.switchToPage(i);
+    const left = doc.page.margins.left;
+    const right = doc.page.width - doc.page.margins.right;
+    const originalBottomMargin = doc.page.margins.bottom;
+    const y = doc.page.height - originalBottomMargin + 12;
+
+    doc.moveTo(left, y - 8).lineTo(right, y - 8).strokeColor(BORDER).lineWidth(0.5).stroke();
+
+    doc.page.margins.bottom = 0;
+    doc
+      .font("Helvetica")
+      .fontSize(7.5)
+      .fillColor(INK_MUTED)
+      .text(`Generado el ${generatedAt}`, left, y, { lineBreak: false })
+      .text(`Página ${i - range.start + 1} de ${range.count}`, left, y, {
+        width: right - left,
+        align: "right",
+        lineBreak: false,
+      });
+    doc.page.margins.bottom = originalBottomMargin;
+  }
+}
 
 export async function tableToPdfBuffer(
   title: string,
@@ -40,7 +114,12 @@ export async function tableToPdfBuffer(
 ): Promise<Buffer> {
   ensurePdfkitFontPatch();
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 40, size: "A4", layout: "landscape" });
+    const doc = new PDFDocument({
+      margin: 40,
+      size: "A4",
+      layout: "landscape",
+      bufferPages: true,
+    });
     const chunks: Buffer[] = [];
     doc.on("data", (chunk) => chunks.push(chunk));
     doc.on("end", () => resolve(Buffer.concat(chunks)));
@@ -51,43 +130,66 @@ export async function tableToPdfBuffer(
     const bottom = doc.page.height - doc.page.margins.bottom;
     const colWidth = (right - left) / headers.length;
 
-    doc.fontSize(14).font("Helvetica-Bold").text(title, left, doc.y);
-    doc.moveDown(0.75);
-
-    let y = doc.y;
-
-    function drawRow(cells: string[], bold: boolean) {
-      doc.font(bold ? "Helvetica-Bold" : "Helvetica").fontSize(8);
-      cells.forEach((cell, i) => {
-        doc.text(cell, left + i * colWidth, y, {
-          width: colWidth - 6,
+    function drawHeaderRow(y: number) {
+      doc.rect(left, y, right - left, ROW_HEIGHT).fill(BRAND_LIGHT);
+      doc.font("Helvetica-Bold").fontSize(8.5).fillColor(BRAND);
+      headers.forEach((cell, i) => {
+        doc.text(cell, left + i * colWidth + 6, y + 6, {
+          width: colWidth - 10,
           ellipsis: true,
           lineBreak: false,
         });
       });
-      y += ROW_HEIGHT;
+      return y + ROW_HEIGHT;
     }
 
-    drawRow(headers, true);
-    doc
-      .moveTo(left, y - 4)
-      .lineTo(right, y - 4)
-      .strokeColor("#c3c2b7")
-      .lineWidth(0.5)
-      .stroke();
+    function drawDataRow(cells: string[], y: number, striped: boolean) {
+      if (striped) doc.rect(left, y, right - left, ROW_HEIGHT).fill(STRIPE);
+      doc.font("Helvetica").fontSize(8.5).fillColor(INK);
+      cells.forEach((cell, i) => {
+        doc.text(cell, left + i * colWidth + 6, y + 6, {
+          width: colWidth - 10,
+          ellipsis: true,
+          lineBreak: false,
+        });
+      });
+      doc
+        .moveTo(left, y + ROW_HEIGHT)
+        .lineTo(right, y + ROW_HEIGHT)
+        .strokeColor(BORDER)
+        .lineWidth(0.5)
+        .stroke();
+      return y + ROW_HEIGHT;
+    }
 
-    for (const row of rows) {
+    function startPage() {
+      drawBrandBand(doc, doc.page.width, title);
+      return drawHeaderRow(HEADER_BAND_HEIGHT + 14);
+    }
+
+    let y = startPage();
+
+    rows.forEach((row, idx) => {
       if (y + ROW_HEIGHT > bottom) {
         doc.addPage();
-        y = doc.page.margins.top;
-        drawRow(headers, true);
+        y = startPage();
       }
-      drawRow(
+      y = drawDataRow(
         row.map((cell) => (cell == null ? "" : String(cell))),
-        false
+        y,
+        idx % 2 === 1
       );
+    });
+
+    if (rows.length === 0) {
+      doc
+        .font("Helvetica")
+        .fontSize(9)
+        .fillColor(INK_MUTED)
+        .text("No hay datos para este periodo.", left, y + 10);
     }
 
+    drawFooters(doc);
     doc.end();
   });
 }
@@ -102,7 +204,7 @@ export async function receiptToPdfBuffer(receipt: {
 }): Promise<Buffer> {
   ensurePdfkitFontPatch();
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ margin: 50, size: "A4" });
+    const doc = new PDFDocument({ margin: 50, size: "A4", bufferPages: true });
     const chunks: Buffer[] = [];
     doc.on("data", (chunk) => chunks.push(chunk));
     doc.on("end", () => resolve(Buffer.concat(chunks)));
@@ -110,55 +212,96 @@ export async function receiptToPdfBuffer(receipt: {
 
     const left = doc.page.margins.left;
     const right = doc.page.width - doc.page.margins.right;
+    const contentWidth = right - left;
     const total = receipt.amount + receipt.lateFee;
     const money = (n: number) => `$${n.toLocaleString("es-CO")}`;
 
-    doc.fontSize(18).font("Helvetica-Bold").text("Transportes AP", left, doc.y);
-    doc.fontSize(11).font("Helvetica").fillColor("#52514e").text("Comprobante de pago");
-    doc.moveDown(1.5);
+    drawBrandBand(doc, doc.page.width, "Comprobante de pago");
 
+    // Insignia "PAGADO".
+    const badgeWidth = 70;
     doc
-      .moveTo(left, doc.y)
-      .lineTo(right, doc.y)
-      .strokeColor("#c3c2b7")
-      .lineWidth(0.5)
-      .stroke();
-    doc.moveDown(1);
-
-    doc.fillColor("#1a1a1a").fontSize(11).font("Helvetica-Bold").text("Alumno: ", left, doc.y, { continued: true });
-    doc.font("Helvetica").text(receipt.studentName);
-    doc.font("Helvetica-Bold").text("Padre/madre: ", left, doc.y, { continued: true });
-    doc.font("Helvetica").text(receipt.parentName);
-    doc.font("Helvetica-Bold").text("Periodo: ", left, doc.y, { continued: true });
-    doc.font("Helvetica").text(receipt.period);
-    doc.font("Helvetica-Bold").text("Fecha de pago: ", left, doc.y, { continued: true });
-    doc.font("Helvetica").text(receipt.paidAt ? new Date(receipt.paidAt).toLocaleString("es-CO") : "—");
-    doc.moveDown(1.5);
-
-    doc.font("Helvetica").text("Valor de la ruta:", left, doc.y, { continued: true });
-    doc.text(money(receipt.amount), { align: "right" });
-    if (receipt.lateFee > 0) {
-      doc.text("Recargo por mora:", left, doc.y, { continued: true });
-      doc.text(money(receipt.lateFee), { align: "right" });
-    }
-    doc.moveDown(0.5);
+      .roundedRect(right - badgeWidth, HEADER_BAND_HEIGHT + 16, badgeWidth, 20, 10)
+      .fill(SUCCESS_LIGHT);
     doc
-      .moveTo(left, doc.y)
-      .lineTo(right, doc.y)
-      .strokeColor("#c3c2b7")
-      .lineWidth(0.5)
-      .stroke();
-    doc.moveDown(0.5);
-    doc.font("Helvetica-Bold").fontSize(13).text("Total pagado:", left, doc.y, { continued: true });
-    doc.text(money(total), { align: "right" });
-
-    doc.moveDown(3);
-    doc
+      .font("Helvetica-Bold")
       .fontSize(9)
-      .font("Helvetica")
-      .fillColor("#898781")
-      .text("Este comprobante es generado automáticamente por la plataforma de Transportes AP.", left, doc.y);
+      .fillColor(SUCCESS)
+      .text("PAGADO", right - badgeWidth, HEADER_BAND_HEIGHT + 22, {
+        width: badgeWidth,
+        align: "center",
+        lineBreak: false,
+      });
 
+    let y = HEADER_BAND_HEIGHT + 55;
+
+    function field(label: string, value: string) {
+      doc.font("Helvetica").fontSize(8.5).fillColor(INK_MUTED).text(label, left, y, {
+        lineBreak: false,
+      });
+      doc
+        .font("Helvetica-Bold")
+        .fontSize(11)
+        .fillColor(INK)
+        .text(value, left, y + 12, { lineBreak: false });
+      y += 38;
+    }
+
+    field("Alumno", receipt.studentName);
+    field("Padre / madre", receipt.parentName);
+    field("Periodo", receipt.period);
+    field(
+      "Fecha de pago",
+      receipt.paidAt ? new Date(receipt.paidAt).toLocaleString("es-CO") : "—"
+    );
+
+    y += 8;
+    doc.moveTo(left, y).lineTo(right, y).strokeColor(BORDER).lineWidth(0.5).stroke();
+    y += 16;
+
+    doc.font("Helvetica").fontSize(10).fillColor(INK);
+    doc.text("Valor de la ruta", left, y, { lineBreak: false });
+    doc.text(money(receipt.amount), left, y, { width: contentWidth, align: "right", lineBreak: false });
+    y += 18;
+
+    if (receipt.lateFee > 0) {
+      doc.text("Recargo por mora", left, y, { lineBreak: false });
+      doc.text(money(receipt.lateFee), left, y, {
+        width: contentWidth,
+        align: "right",
+        lineBreak: false,
+      });
+      y += 18;
+    }
+
+    y += 6;
+    doc.roundedRect(left, y, contentWidth, 40, 6).fill(BRAND_LIGHT);
+    doc
+      .font("Helvetica-Bold")
+      .fontSize(11)
+      .fillColor(BRAND)
+      .text("Total pagado", left + 14, y + 13, { lineBreak: false });
+    doc
+      .fontSize(15)
+      .text(money(total), left, y + 10, {
+        width: contentWidth - 14,
+        align: "right",
+        lineBreak: false,
+      });
+
+    y += 65;
+    doc
+      .font("Helvetica")
+      .fontSize(8.5)
+      .fillColor(INK_MUTED)
+      .text(
+        "Este comprobante es generado automáticamente por la plataforma de Transportes AP.",
+        left,
+        y,
+        { width: contentWidth }
+      );
+
+    drawFooters(doc);
     doc.end();
   });
 }

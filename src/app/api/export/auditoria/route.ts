@@ -27,7 +27,7 @@ export async function GET(request: Request) {
   ]);
 
   if (format === "pdf") {
-    const buffer = await tableToPdfBuffer("Bitácora de auditoría — Transportes AP", HEADERS, rows);
+    const buffer = await tableToPdfBuffer("Bitácora de auditoría", HEADERS, rows);
     return pdfResponse("auditoria.pdf", buffer);
   }
 
