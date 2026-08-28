@@ -1,6 +1,35 @@
 import "server-only";
 
+import fs from "fs";
 import PDFDocument from "pdfkit";
+import { HELVETICA_AFM, HELVETICA_BOLD_AFM } from "./pdfkit-fonts";
+
+// pdfkit carga sus fuentes estándar con fs.readFileSync(__dirname +
+// "/data/<Fuente>.afm") en tiempo de ejecución en vez de un require()
+// estático, así que el tracer de archivos de Vercel no detecta esa
+// dependencia — el build queda "listo" pero cualquier PDF responde 500
+// ("ENOENT ... pdfkit/js/data/Helvetica.afm") apenas alguien lo genera.
+// outputFileTracingIncludes tampoco lo resolvió de forma confiable. Como
+// solo usamos Helvetica y Helvetica-Bold, se intercepta esa lectura puntual
+// y se devuelve el contenido ya incrustado (pdfkit-fonts.ts) — así el PDF
+// nunca depende de que esos archivos existan en el sistema de archivos.
+const originalReadFileSync = fs.readFileSync;
+let fontPatchApplied = false;
+function ensurePdfkitFontPatch() {
+  if (fontPatchApplied) return;
+  fontPatchApplied = true;
+
+  fs.readFileSync = new Proxy(originalReadFileSync, {
+    apply(target, thisArg, args: [fs.PathOrFileDescriptor, ...unknown[]]) {
+      const filePath = args[0];
+      if (typeof filePath === "string") {
+        if (filePath.endsWith("/data/Helvetica.afm")) return HELVETICA_AFM;
+        if (filePath.endsWith("/data/Helvetica-Bold.afm")) return HELVETICA_BOLD_AFM;
+      }
+      return Reflect.apply(target, thisArg, args);
+    },
+  });
+}
 
 const ROW_HEIGHT = 20;
 
@@ -9,6 +38,7 @@ export async function tableToPdfBuffer(
   headers: string[],
   rows: unknown[][]
 ): Promise<Buffer> {
+  ensurePdfkitFontPatch();
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 40, size: "A4", layout: "landscape" });
     const chunks: Buffer[] = [];
@@ -70,6 +100,7 @@ export async function receiptToPdfBuffer(receipt: {
   lateFee: number;
   paidAt: string | null;
 }): Promise<Buffer> {
+  ensurePdfkitFontPatch();
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ margin: 50, size: "A4" });
     const chunks: Buffer[] = [];
