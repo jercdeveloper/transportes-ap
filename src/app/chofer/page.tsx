@@ -54,21 +54,22 @@ export default async function ChoferPage() {
   }
 
   const today = new Date().toISOString().slice(0, 10);
-  const { data: todaysTrips } = await supabase
-    .from("trips")
-    .select("id, status, started_at, ended_at")
-    .eq("route_id", route.id)
-    .eq("trip_date", today)
-    .order("started_at", { ascending: true });
+  const [{ data: todaysTrips }, { data: assignments }] = await Promise.all([
+    supabase
+      .from("trips")
+      .select("id, status, started_at, ended_at")
+      .eq("route_id", route.id)
+      .eq("trip_date", today)
+      .order("started_at", { ascending: true }),
+    supabase
+      .from("student_route_assignment")
+      .select(
+        "student_id, stop_order, students(full_name, address_label, lat, lng, blood_type, medical_notes, emergency_contact_name, emergency_contact_phone, photo_url, profiles(phone))"
+      )
+      .eq("route_id", route.id),
+  ]);
 
   const trip = todaysTrips?.[todaysTrips.length - 1] ?? null;
-
-  const { data: assignments } = await supabase
-    .from("student_route_assignment")
-    .select(
-      "student_id, stop_order, students(full_name, address_label, lat, lng, blood_type, medical_notes, emergency_contact_name, emergency_contact_phone, photo_url, profiles(phone))"
-    )
-    .eq("route_id", route.id);
 
   const studentIds = (assignments ?? []).map((a) => a.student_id);
 

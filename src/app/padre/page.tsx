@@ -86,30 +86,30 @@ export default async function PadrePage() {
     ),
   ];
 
-  const { data: activeTrips } =
+  const [{ data: activeTrips }, { data: announcements }] = await Promise.all([
     routeIds.length > 0
-      ? await supabase
+      ? supabase
           .from("trips")
           .select("id, route_id")
           .in("route_id", routeIds)
           .eq("trip_date", today)
           .eq("status", "active")
-      : { data: [] };
+      : Promise.resolve({ data: [] }),
+    supabase
+      .from("announcements")
+      .select("id, title, body, created_at, routes(name)")
+      .or(
+        routeIds.length > 0
+          ? `route_id.is.null,route_id.in.(${routeIds.join(",")})`
+          : "route_id.is.null"
+      )
+      .order("created_at", { ascending: false })
+      .limit(5),
+  ]);
 
   const activeTripByRoute = new Map(
     (activeTrips ?? []).map((t) => [t.route_id, t.id])
   );
-
-  const { data: announcements } = await supabase
-    .from("announcements")
-    .select("id, title, body, created_at, routes(name)")
-    .or(
-      routeIds.length > 0
-        ? `route_id.is.null,route_id.in.(${routeIds.join(",")})`
-        : "route_id.is.null"
-    )
-    .order("created_at", { ascending: false })
-    .limit(5);
 
   if (!students?.length) {
     return (
