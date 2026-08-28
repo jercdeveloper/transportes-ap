@@ -81,9 +81,18 @@ export function LiveTripMap({
   );
   const [speedMps, setSpeedMps] = useState<number | null>(null);
   const [connected, setConnected] = useState(false);
+  const [routeEta, setRouteEta] = useState<{
+    distanceMeters: number | null;
+    durationSeconds: number;
+  } | null>(null);
   const lastPosRef = useRef<{ lat: number; lng: number; ts: number } | null>(
     null
   );
+  const busPosRef = useRef<{ lat: number; lng: number } | null>(null);
+
+  useEffect(() => {
+    busPosRef.current = busPos;
+  }, [busPos]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -117,12 +126,53 @@ export function LiveTripMap({
     };
   }, [tripId]);
 
-  const distanceToStop =
+  const destLat = stops[0]?.lat;
+  const destLng = stops[0]?.lng;
+
+  useEffect(() => {
+    if (destLat == null || destLng == null) return;
+    let cancelled = false;
+
+    async function fetchRouteEta() {
+      const pos = busPosRef.current;
+      if (!pos) return;
+      try {
+        const url =
+          `/api/route-eta?originLat=${pos.lat}&originLng=${pos.lng}` +
+          `&destLat=${destLat}&destLng=${destLng}`;
+        const res = await fetch(url);
+        if (!res.ok || cancelled) return;
+        const data = (await res.json()) as {
+          distanceMeters: number | null;
+          durationSeconds: number;
+        } | null;
+        if (!cancelled && data) setRouteEta(data);
+      } catch {
+        // Sin conexión o cuota agotada: se sigue mostrando la estimación
+        // en línea recta, que ya funciona como respaldo.
+      }
+    }
+
+    fetchRouteEta();
+    const interval = setInterval(fetchRouteEta, 30000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [tripId, destLat, destLng]);
+
+  const straightLineDistance =
     busPos && stops[0] ? distanceMeters(busPos, stops[0]) : null;
-  const etaText =
-    distanceToStop != null && speedMps
-      ? formatEtaMinutes(distanceToStop / speedMps)
+  const straightLineEtaText =
+    straightLineDistance != null && speedMps
+      ? formatEtaMinutes(straightLineDistance / speedMps)
       : null;
+
+  // Se prefiere la distancia/tiempo por carretera real (Google Routes API,
+  // refrescada cada 30s) sobre la línea recta — esta última solo se usa
+  // como respaldo mientras llega el primer resultado o si la API falla.
+  const distanceToStop = routeEta?.distanceMeters ?? straightLineDistance;
+  const etaText = routeEta ? formatEtaMinutes(routeEta.durationSeconds) : straightLineEtaText;
 
   return (
     <div className="space-y-1">

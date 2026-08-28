@@ -1,8 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useActionState, useEffect, useRef, useState } from "react";
-import { searchAddress } from "@/lib/geocode";
+import { useActionState, useState } from "react";
+import { AddressAutocomplete } from "@/components/address-autocomplete";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
@@ -66,41 +66,6 @@ export function StudentForm({
   );
   const [lat, setLat] = useState<number | null>(initialValues?.lat ?? null);
   const [lng, setLng] = useState<number | null>(initialValues?.lng ?? null);
-  const [geocodeStatus, setGeocodeStatus] = useState<
-    "idle" | "searching" | "not_found"
-  >("idle");
-  const isFirstRunRef = useRef(true);
-
-  useEffect(() => {
-    if (isFirstRunRef.current) {
-      isFirstRunRef.current = false;
-      return;
-    }
-    if (addressLabel.trim().length < 6) return;
-
-    const controller = new AbortController();
-    const timer = setTimeout(async () => {
-      setGeocodeStatus("searching");
-      try {
-        const result = await searchAddress(addressLabel, controller.signal);
-        if (controller.signal.aborted) return;
-        if (result) {
-          setLat(result.lat);
-          setLng(result.lng);
-          setGeocodeStatus("idle");
-        } else {
-          setGeocodeStatus("not_found");
-        }
-      } catch {
-        if (!controller.signal.aborted) setGeocodeStatus("not_found");
-      }
-    }, 700);
-
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [addressLabel]);
 
   return (
     <Card>
@@ -113,7 +78,6 @@ export function StudentForm({
               setAddressLabel("");
               setLat(null);
               setLng(null);
-              isFirstRunRef.current = true;
             }
           }}
           className="space-y-5"
@@ -253,16 +217,16 @@ export function StudentForm({
               <MapPin className="size-4 text-primary" />
               Dirección de recogida
             </h3>
-            <Input
+            <AddressAutocomplete
               id="address_label"
               name="address_label"
               value={addressLabel}
-              onChange={(e) => {
-                const value = e.target.value;
-                setAddressLabel(value);
-                if (value.trim().length < 6) setGeocodeStatus("idle");
+              onChange={setAddressLabel}
+              onSelect={(result) => {
+                setAddressLabel(result.displayName);
+                setLat(result.lat);
+                setLng(result.lng);
               }}
-              required
               placeholder="Ej: Carrera 9 # 15-30, Barrio Bolívar"
             />
 
@@ -272,17 +236,12 @@ export function StudentForm({
               onChange={(newLat, newLng) => {
                 setLat(newLat);
                 setLng(newLng);
-                setGeocodeStatus("idle");
               }}
             />
             <p className="text-xs text-muted-foreground">
-              {geocodeStatus === "searching"
-                ? "Buscando la dirección en el mapa..."
-                : geocodeStatus === "not_found"
-                  ? "No se encontró esa dirección — ajusta el punto haciendo clic en el mapa."
-                  : lat != null && lng != null
-                    ? `Ubicación: ${lat.toFixed(5)}, ${lng.toFixed(5)} (puedes ajustarla con un clic)`
-                    : "Escribe la dirección y el mapa se centrará solo, o haz clic para marcarla a mano."}
+              {lat != null && lng != null
+                ? `Ubicación: ${lat.toFixed(5)}, ${lng.toFixed(5)} (puedes ajustarla con un clic)`
+                : "Escribe la dirección y elige una sugerencia de la lista, o haz clic en el mapa para marcarla a mano."}
             </p>
           </div>
 

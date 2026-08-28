@@ -6,7 +6,7 @@ Plataforma web (PWA) para la gestión de transporte escolar de Transportes AP: r
 
 - Next.js 16 (App Router, TypeScript, Tailwind CSS)
 - Supabase (Postgres + Auth + Row Level Security)
-- Leaflet + OpenStreetMap para las imágenes del mapa (sin cuenta ni API key); Google Geocoding API para convertir una dirección escrita en coordenadas
+- Leaflet + OpenStreetMap para las imágenes del mapa (sin cuenta ni API key); Google Maps Platform (Geocoding, Places, Routes) para direcciones y ETA por carretera
 
 ## Puesta en marcha
 
@@ -35,11 +35,11 @@ VAPID_PRIVATE_KEY=...
 # para que solo Vercel Cron (u otro programador) pueda llamarlos.
 CRON_SECRET=...
 
-# Búsqueda de direcciones (parada de cada alumno en el mapa) vía Google
-# Geocoding API — server-only, la usa /api/geocode, nunca se envía al
-# navegador. Requiere una cuenta de Google Cloud con facturación activada
-# (el uso de esta app se queda dentro de los $200 USD/mes gratis de Google
-# Maps Platform). Ver .env.local.example para los pasos exactos.
+# Direcciones (autocompletado + geocodificación) y ETA por carretera del
+# mapa en vivo, vía Google Maps Platform — server-only, nunca se envía al
+# navegador. Requiere activar 3 APIs en Google Cloud: Geocoding API,
+# Places API (New) y Routes API. Ver .env.local.example para los pasos
+# exactos.
 GOOGLE_MAPS_API_KEY=...
 ```
 
