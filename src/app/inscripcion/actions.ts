@@ -1,7 +1,9 @@
 "use server";
 
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { notifyAdmins } from "@/lib/push";
+import { isRateLimited } from "@/lib/rate-limit";
 
 export async function submitEnrollmentRequest(
   _prevState: { error: string; success?: boolean } | undefined,
@@ -17,6 +19,14 @@ export async function submitEnrollmentRequest(
 
   if (honeypot || submittedTooFast) {
     return { error: "", success: true };
+  }
+
+  // Formulario público sin autenticación: se limita por IP para que no se
+  // pueda saturar la tabla de solicitudes ni el buzón de notificaciones del
+  // admin con envíos repetidos.
+  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  if (isRateLimited(`inscripcion:${ip}`, { max: 5, windowMs: 10 * 60_000 })) {
+    return { error: "Demasiadas solicitudes. Intenta de nuevo más tarde." };
   }
 
   const parentName = String(formData.get("parent_name") ?? "").trim();

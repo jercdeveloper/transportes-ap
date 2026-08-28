@@ -1,11 +1,20 @@
 import { NextResponse } from "next/server";
 import { getSessionProfile } from "@/lib/auth";
+import { isRateLimited } from "@/lib/rate-limit";
 
 export async function GET(request: Request) {
-  // Cualquier rol logueado puede pedirla (el padre la usa desde el mapa en
-  // vivo, el admin también podría) — no hay datos sensibles de por medio,
-  // solo dos coordenadas que ya son visibles en el mapa.
-  await getSessionProfile();
+  // Solo padre y admin la usan (el mapa en vivo del chofer no la llama) —
+  // no hay datos sensibles de por medio, solo dos coordenadas que ya son
+  // visibles en el mapa, pero cada llamada consume cuota de pago de Google
+  // Maps, así que se restringe por rol y se limita la tasa por usuario.
+  const profile = await getSessionProfile();
+  if (profile.role !== "padre" && profile.role !== "admin") {
+    return NextResponse.json({ error: "No autorizado" }, { status: 403 });
+  }
+
+  if (isRateLimited(`route-eta:${profile.id}`, { max: 30, windowMs: 5 * 60_000 })) {
+    return NextResponse.json({ error: "Demasiadas solicitudes" }, { status: 429 });
+  }
 
   const { searchParams } = new URL(request.url);
   const originLat = Number(searchParams.get("originLat"));
