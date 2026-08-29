@@ -14,7 +14,7 @@ export default async function CambiarPasswordPage() {
   const home = ROLE_HOME[profile.role] ?? "/";
 
   return (
-    <AuthShell title="Cambiar contraseña">
+    <AuthShell title="Cambiar contraseña" hero={false}>
       <div className="space-y-4">
         <ChangePasswordForm redirectTo={home} />
         <p className="text-center text-xs text-muted-foreground">

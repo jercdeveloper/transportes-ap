@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { Mail } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { AuthShell } from "@/components/auth-shell";
 import { Input } from "@/components/ui/input";
@@ -39,13 +40,18 @@ export default function RecuperarPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="email">Correo</Label>
-            <Input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+            <div className="relative">
+              <Mail className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="pl-8"
+              />
+            </div>
           </div>
 
           {status === "error" && (
@@ -54,7 +60,12 @@ export default function RecuperarPage() {
             </p>
           )}
 
-          <Button type="submit" disabled={status === "sending"} className="w-full">
+          <Button
+            type="submit"
+            disabled={status === "sending"}
+            size="lg"
+            className="w-full"
+          >
             {status === "sending" ? "Enviando..." : "Enviar enlace"}
           </Button>
         </form>
