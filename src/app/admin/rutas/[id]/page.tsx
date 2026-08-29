@@ -20,7 +20,10 @@ export default async function RutaDetailPage({
   const [{ data: route }, { data: choferes }, { data: assignments }, { data: maintenance }] =
     await Promise.all([
       supabase.from("routes").select("*").eq("id", id).maybeSingle(),
-      supabase.from("profiles").select("id, full_name").eq("role", "chofer"),
+      supabase
+        .from("profiles")
+        .select("id, full_name")
+        .or("role.eq.chofer,and(role.eq.admin,is_driver.eq.true)"),
       supabase
         .from("student_route_assignment")
         .select("stop_order, students(full_name, address_label, lat, lng)")

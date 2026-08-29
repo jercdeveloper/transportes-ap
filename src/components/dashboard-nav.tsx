@@ -1,5 +1,13 @@
 import Link from "next/link";
-import { Bus, Bell, MessageCircle, HelpCircle, KeyRound, LogOut } from "lucide-react";
+import {
+  Bus,
+  Bell,
+  MessageCircle,
+  HelpCircle,
+  KeyRound,
+  LogOut,
+  LayoutDashboard,
+} from "lucide-react";
 import { logout } from "@/app/login/actions";
 import { Button } from "@/components/ui/button";
 
@@ -9,12 +17,14 @@ export function DashboardNav({
   showNotificationSettings,
   messagesHref,
   hasUnreadMessages,
+  adminHref,
 }: {
   title: string;
   fullName: string;
   showNotificationSettings?: boolean;
   messagesHref?: string;
   hasUnreadMessages?: boolean;
+  adminHref?: string;
 }) {
   return (
     <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background/95 px-4 py-2.5 backdrop-blur supports-backdrop-filter:bg-background/80">
@@ -31,6 +41,12 @@ export function DashboardNav({
         <span className="mr-1 hidden text-sm text-muted-foreground sm:inline">
           {fullName}
         </span>
+        {adminHref && (
+          <Button variant="ghost" size="icon-sm" render={<Link href={adminHref} />}>
+            <LayoutDashboard />
+            <span className="sr-only">Panel de administración</span>
+          </Button>
+        )}
         {messagesHref && (
           <Button variant="ghost" size="icon-sm" render={<Link href={messagesHref} />} className="relative">
             <MessageCircle />

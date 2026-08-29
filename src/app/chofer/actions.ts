@@ -1,13 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireRole } from "@/lib/auth";
+import { requireChoferAccess } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { sendPushToUser, notifyAdmins } from "@/lib/push";
 import type { TripEventType } from "@/lib/supabase/types";
 
 async function assertOwnsRoute(routeId: string) {
-  const profile = await requireRole("chofer");
+  const profile = await requireChoferAccess();
   const supabase = await createClient();
   const { data: route } = await supabase
     .from("routes")

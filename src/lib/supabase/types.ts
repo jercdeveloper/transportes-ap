@@ -19,6 +19,7 @@ export interface Database {
           license_number: string | null;
           license_category: string | null;
           license_expiry: string | null;
+          is_driver: boolean;
           notify_trip_start: boolean;
           notify_pickup_dropoff: boolean;
           notify_announcements: boolean;
@@ -45,6 +46,7 @@ export interface Database {
           license_number: string | null;
           license_category: string | null;
           license_expiry: string | null;
+          is_driver: boolean;
           notify_trip_start: boolean;
           notify_pickup_dropoff: boolean;
           notify_announcements: boolean;

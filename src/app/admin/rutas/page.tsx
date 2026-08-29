@@ -24,7 +24,11 @@ export default async function RutasPage({
 
   const [{ data: routes }, { data: choferes }] = await Promise.all([
     routesQuery,
-    supabase.from("profiles").select("id, full_name").eq("role", "chofer"),
+    // También incluye admins que además manejan una ruta (profiles.is_driver).
+    supabase
+      .from("profiles")
+      .select("id, full_name")
+      .or("role.eq.chofer,and(role.eq.admin,is_driver.eq.true)"),
   ]);
 
   return (

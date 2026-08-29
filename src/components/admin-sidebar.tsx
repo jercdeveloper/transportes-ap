@@ -19,6 +19,7 @@ import {
   HelpCircle,
   KeyRound,
   LogOut,
+  ShipWheel,
 } from "lucide-react";
 import {
   Sidebar,
@@ -48,7 +49,13 @@ const NAV_ITEMS = [
   { href: "/admin/auditoria", label: "Auditoría", icon: History },
 ] as const;
 
-export function AdminSidebar({ fullName }: { fullName: string }) {
+export function AdminSidebar({
+  fullName,
+  isDriver,
+}: {
+  fullName: string;
+  isDriver?: boolean;
+}) {
   const pathname = usePathname();
 
   return (
@@ -93,6 +100,25 @@ export function AdminSidebar({ fullName }: { fullName: string }) {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {isDriver && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    isActive={pathname.startsWith("/chofer")}
+                    tooltip="Mi ruta (chofer)"
+                    render={<Link href="/chofer" />}
+                  >
+                    <ShipWheel />
+                    <span>Mi ruta (chofer)</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter>

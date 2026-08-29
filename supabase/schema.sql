@@ -27,6 +27,14 @@ alter table profiles add column if not exists license_number text;
 alter table profiles add column if not exists license_category text;
 alter table profiles add column if not exists license_expiry date;
 
+-- Un admin que también maneja una ruta (caso real: negocio familiar
+-- pequeño donde la misma persona administra y conduce). No se modela como
+-- un segundo rol — el rol sigue siendo 'admin', que ya tiene acceso
+-- completo vía is_admin() en cada política de RLS — esta bandera solo
+-- controla si aparece como opción de chofer al asignar una ruta y si
+-- puede entrar a /chofer.
+alter table profiles add column if not exists is_driver boolean not null default false;
+
 -- ---------------------------------------------------------------------------
 -- Alumnos
 -- La dirección del alumno (lat/lng elegidos en el mapa al registrarlo) ES su

@@ -8,7 +8,7 @@ import {
   TriangleAlert,
   FileDown,
 } from "lucide-react";
-import { requireRole } from "@/lib/auth";
+import { requireChoferAccess } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import {
   startTrip,
@@ -34,7 +34,7 @@ const TRIP_STATUS_LABEL: Record<string, string> = {
 };
 
 export default async function ChoferPage() {
-  const profile = await requireRole("chofer");
+  const profile = await requireChoferAccess();
   const supabase = await createClient();
 
   const { data: route } = await supabase

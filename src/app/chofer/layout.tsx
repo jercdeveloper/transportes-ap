@@ -1,14 +1,18 @@
-import { requireRole } from "@/lib/auth";
+import { requireChoferAccess } from "@/lib/auth";
 import { DashboardNav } from "@/components/dashboard-nav";
 
 export default async function ChoferLayout({
   children,
 }: LayoutProps<"/chofer">) {
-  const profile = await requireRole("chofer");
+  const profile = await requireChoferAccess();
 
   return (
     <div className="min-h-screen bg-muted/40">
-      <DashboardNav title="Chofer" fullName={profile.full_name} />
+      <DashboardNav
+        title="Chofer"
+        fullName={profile.full_name}
+        adminHref={profile.role === "admin" ? "/admin" : undefined}
+      />
       <main className="mx-auto max-w-2xl px-4 py-6">{children}</main>
     </div>
   );
